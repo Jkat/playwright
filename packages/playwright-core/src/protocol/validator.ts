@@ -257,7 +257,7 @@ scheme.LocalUtilsConnectResult = tObject({
 });
 scheme.RootInitializer = tOptional(tObject({}));
 scheme.RootInitializeParams = tObject({
-  sdkLanguage: tString,
+  sdkLanguage: tEnum(['javascript', 'python', 'java', 'csharp']),
 });
 scheme.RootInitializeResult = tObject({
   playwright: tChannel(['Playwright']),
@@ -334,6 +334,10 @@ scheme.RecorderSource = tObject({
 scheme.DebugControllerInitializer = tOptional(tObject({}));
 scheme.DebugControllerInspectRequestedEvent = tObject({
   selector: tString,
+  locators: tArray(tType('NameValue')),
+});
+scheme.DebugControllerStateChangedEvent = tObject({
+  pageCount: tNumber,
 });
 scheme.DebugControllerBrowsersChangedEvent = tObject({
   browsers: tArray(tObject({
@@ -345,14 +349,10 @@ scheme.DebugControllerBrowsersChangedEvent = tObject({
 scheme.DebugControllerSourcesChangedEvent = tObject({
   sources: tArray(tType('RecorderSource')),
 });
-scheme.DebugControllerSetTrackHierarchyParams = tObject({
+scheme.DebugControllerSetReportStateChangedParams = tObject({
   enabled: tBoolean,
 });
-scheme.DebugControllerSetTrackHierarchyResult = tOptional(tObject({}));
-scheme.DebugControllerSetReuseBrowserParams = tObject({
-  enabled: tBoolean,
-});
-scheme.DebugControllerSetReuseBrowserResult = tOptional(tObject({}));
+scheme.DebugControllerSetReportStateChangedResult = tOptional(tObject({}));
 scheme.DebugControllerResetForReuseParams = tOptional(tObject({}));
 scheme.DebugControllerResetForReuseResult = tOptional(tObject({}));
 scheme.DebugControllerNavigateAllParams = tObject({
@@ -1330,6 +1330,7 @@ scheme.FrameHoverParams = tObject({
   position: tOptional(tType('Point')),
   timeout: tOptional(tNumber),
   trial: tOptional(tBoolean),
+  noWaitAfter: tOptional(tBoolean),
 });
 scheme.FrameHoverResult = tOptional(tObject({}));
 scheme.FrameInnerHTMLParams = tObject({
@@ -1716,6 +1717,7 @@ scheme.ElementHandleHoverParams = tObject({
   position: tOptional(tType('Point')),
   timeout: tOptional(tNumber),
   trial: tOptional(tBoolean),
+  noWaitAfter: tOptional(tBoolean),
 });
 scheme.ElementHandleHoverResult = tOptional(tObject({}));
 scheme.ElementHandleInnerHTMLParams = tOptional(tObject({}));

@@ -250,6 +250,35 @@ export interface Page {
   evaluateHandle<R>(pageFunction: PageFunction<void, R>, arg?: any): Promise<SmartHandle<R>>;
 
   /**
+   * Adds a script which would be evaluated in one of the following scenarios:
+   * - Whenever the page is navigated.
+   * - Whenever the child frame is attached or navigated. In this case, the script is evaluated in the context of the newly
+   *   attached frame.
+   *
+   * The script is evaluated after the document was created but before any of its scripts were run. This is useful to amend
+   * the JavaScript environment, e.g. to seed `Math.random`.
+   *
+   * An example of overriding `Math.random` before the page loads:
+   *
+   * ```js
+   * // preload.js
+   * Math.random = () => 42;
+   * ```
+   *
+   * ```js
+   * // In your playwright script, assuming the preload.js file is in same directory
+   * await page.addInitScript({ path: './preload.js' });
+   * ```
+   *
+   * > NOTE: The order of evaluation of multiple scripts installed via
+   * [browserContext.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-browsercontext#browser-context-add-init-script)
+   * and [page.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-page#page-add-init-script) is not defined.
+   * @param script Script to be evaluated in the page.
+   * @param arg Optional argument to pass to `script` (only supported when passing a function).
+   */
+  addInitScript<Arg>(script: PageFunction<Arg, any> | { path?: string, content?: string }, arg?: Arg): Promise<void>;
+
+  /**
    * > NOTE: The use of [ElementHandle] is discouraged, use [Locator] objects and web-first assertions instead.
    *
    * The method finds an element matching the specified selector within the page. If no elements match the selector, the
@@ -1732,46 +1761,6 @@ export interface Page {
   accessibility: Accessibility;
 
   /**
-   * Adds a script which would be evaluated in one of the following scenarios:
-   * - Whenever the page is navigated.
-   * - Whenever the child frame is attached or navigated. In this case, the script is evaluated in the context of the newly
-   *   attached frame.
-   *
-   * The script is evaluated after the document was created but before any of its scripts were run. This is useful to amend
-   * the JavaScript environment, e.g. to seed `Math.random`.
-   *
-   * An example of overriding `Math.random` before the page loads:
-   *
-   * ```js
-   * // preload.js
-   * Math.random = () => 42;
-   * ```
-   *
-   * ```js
-   * // In your playwright script, assuming the preload.js file is in same directory
-   * await page.addInitScript({ path: './preload.js' });
-   * ```
-   *
-   * > NOTE: The order of evaluation of multiple scripts installed via
-   * [browserContext.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-browsercontext#browser-context-add-init-script)
-   * and [page.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-page#page-add-init-script) is not defined.
-   * @param script Script to be evaluated in the page.
-   * @param arg Optional argument to pass to `script` (only supported when passing a function).
-   */
-  addInitScript(script: Function|string|{
-    /**
-     * Path to the JavaScript file. If `path` is a relative path, then it is resolved relative to the current working
-     * directory. Optional.
-     */
-    path?: string;
-
-    /**
-     * Raw script content. Optional.
-     */
-    content?: string;
-  }, arg?: Serializable): Promise<void>;
-
-  /**
    * Adds a `<script>` tag into the page with the desired url or content. Returns the added tag when the script's onload
    * fires or when the script content was injected into frame.
    *
@@ -2421,7 +2410,7 @@ export interface Page {
    * id="my-frame">`:
    *
    * ```js
-   * const locator = page.frameLocator('#my-iframe').locator('text=Submit');
+   * const locator = page.frameLocator('#my-iframe').getByText('Submit');
    * await locator.click();
    * ```
    *
@@ -2468,14 +2457,15 @@ export interface Page {
    */
   getByAltText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
    * Allows locating input elements by the text of the associated label. For example, this method will find the input by
-   * label text Password in the following DOM:
+   * label text "Password" in the following DOM:
    *
    * ```html
    * <label for="password-input">Password:</label>
@@ -2485,9 +2475,10 @@ export interface Page {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByLabelText(text: string|RegExp, options?: {
+  getByLabel(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -2503,9 +2494,10 @@ export interface Page {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByPlaceholderText(text: string|RegExp, options?: {
+  getByPlaceholder(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -2523,7 +2515,7 @@ export interface Page {
    * @param role Required aria role.
    * @param options
    */
-  getByRole(role: string, options?: {
+  getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
     /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls. Available values for
      * checked are `true`, `false` and `"mixed"`.
@@ -2589,6 +2581,14 @@ export interface Page {
    * Locate element by the test id. By default, the `data-testid` attribute is used as a test id. Use
    * [selectors.setTestIdAttribute(attributeName)](https://playwright.dev/docs/api/class-selectors#selectors-set-test-id-attribute)
    * to configure a different test id attribute if necessary.
+   *
+   * ```js
+   * // Set custom test id attribute from @playwright/test config:
+   * use: {
+   *   testIdAttribute: 'data-pw'
+   * }
+   * ```
+   *
    * @param testId Id to locate the element by.
    */
   getByTestId(testId: string): Locator;
@@ -2600,13 +2600,14 @@ export interface Page {
    */
   getByText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
-   * Allows locating elements by their title. For example, this method will find the button by its title "Submit":
+   * Allows locating elements by their title. For example, this method will find the button by its title "Place the order":
    *
    * ```html
    * <button title='Place the order'>Order Now</button>
@@ -2617,7 +2618,8 @@ export interface Page {
    */
   getByTitle(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -2758,6 +2760,13 @@ export interface Page {
      * modifiers back. If not specified, currently pressed modifiers are used.
      */
     modifiers?: Array<"Alt"|"Control"|"Meta"|"Shift">;
+
+    /**
+     * Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can
+     * opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to
+     * inaccessible pages. Defaults to `false`.
+     */
+    noWaitAfter?: boolean;
 
     /**
      * A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the
@@ -3365,7 +3374,9 @@ export interface Page {
     notFound?: "abort"|"fallback";
 
     /**
-     * If specified, updates the given HAR with the actual network information instead of serving from file.
+     * If specified, updates the given HAR with the actual network information instead of serving from file. The file is
+     * written to disk when
+     * [browserContext.close()](https://playwright.dev/docs/api/class-browsercontext#browser-context-close) is called.
      */
     update?: boolean;
 
@@ -4152,7 +4163,7 @@ export interface Page {
    * when this method is called. If current document has already reached the required state, resolves immediately.
    *
    * ```js
-   * await page.click('button'); // Click triggers navigation.
+   * await page.getByRole('button').click(); // Click triggers navigation.
    * await page.waitForLoadState(); // The promise resolves after 'load' event.
    * ```
    *
@@ -4161,7 +4172,7 @@ export interface Page {
    *   // It is important to call waitForEvent before click to set up waiting.
    *   page.waitForEvent('popup'),
    *   // Click triggers a popup.
-   *   page.locator('button').click(),
+   *   page.getByRole('button').click(),
    * ])
    * await popup.waitForLoadState('domcontentloaded'); // The promise resolves after 'domcontentloaded' event.
    * console.log(await popup.title()); // Popup is ready to use.
@@ -5512,7 +5523,7 @@ export interface Frame {
    * id="my-frame">`:
    *
    * ```js
-   * const locator = frame.frameLocator('#my-iframe').locator('text=Submit');
+   * const locator = frame.frameLocator('#my-iframe').getByText('Submit');
    * await locator.click();
    * ```
    *
@@ -5554,14 +5565,15 @@ export interface Frame {
    */
   getByAltText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
    * Allows locating input elements by the text of the associated label. For example, this method will find the input by
-   * label text Password in the following DOM:
+   * label text "Password" in the following DOM:
    *
    * ```html
    * <label for="password-input">Password:</label>
@@ -5571,9 +5583,10 @@ export interface Frame {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByLabelText(text: string|RegExp, options?: {
+  getByLabel(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -5589,9 +5602,10 @@ export interface Frame {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByPlaceholderText(text: string|RegExp, options?: {
+  getByPlaceholder(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -5609,7 +5623,7 @@ export interface Frame {
    * @param role Required aria role.
    * @param options
    */
-  getByRole(role: string, options?: {
+  getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
     /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls. Available values for
      * checked are `true`, `false` and `"mixed"`.
@@ -5675,6 +5689,14 @@ export interface Frame {
    * Locate element by the test id. By default, the `data-testid` attribute is used as a test id. Use
    * [selectors.setTestIdAttribute(attributeName)](https://playwright.dev/docs/api/class-selectors#selectors-set-test-id-attribute)
    * to configure a different test id attribute if necessary.
+   *
+   * ```js
+   * // Set custom test id attribute from @playwright/test config:
+   * use: {
+   *   testIdAttribute: 'data-pw'
+   * }
+   * ```
+   *
    * @param testId Id to locate the element by.
    */
   getByTestId(testId: string): Locator;
@@ -5686,13 +5708,14 @@ export interface Frame {
    */
   getByText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
-   * Allows locating elements by their title. For example, this method will find the button by its title "Submit":
+   * Allows locating elements by their title. For example, this method will find the button by its title "Place the order":
    *
    * ```html
    * <button title='Place the order'>Order Now</button>
@@ -5703,7 +5726,8 @@ export interface Frame {
    */
   getByTitle(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -5783,6 +5807,13 @@ export interface Frame {
      * modifiers back. If not specified, currently pressed modifiers are used.
      */
     modifiers?: Array<"Alt"|"Control"|"Meta"|"Shift">;
+
+    /**
+     * Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can
+     * opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to
+     * inaccessible pages. Defaults to `false`.
+     */
+    noWaitAfter?: boolean;
 
     /**
      * A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the
@@ -6724,7 +6755,7 @@ export interface BrowserContext {
    *     <button onclick="onClick()">Click me</button>
    *     <div></div>
    *   `);
-   *   await page.locator('button').click();
+   *   await page.getByRole('button').click();
    * })();
    * ```
    *
@@ -6778,7 +6809,7 @@ export interface BrowserContext {
    *     <button onclick="onClick()">Click me</button>
    *     <div></div>
    *   `);
-   *   await page.locator('button').click();
+   *   await page.getByRole('button').click();
    * })();
    * ```
    *
@@ -6802,6 +6833,37 @@ export interface BrowserContext {
    * @param options
    */
   exposeBinding(name: string, playwrightBinding: (source: BindingSource, ...args: any[]) => any, options?: { handle?: boolean }): Promise<void>;
+
+  /**
+   * Adds a script which would be evaluated in one of the following scenarios:
+   * - Whenever a page is created in the browser context or is navigated.
+   * - Whenever a child frame is attached or navigated in any page in the browser context. In this case, the script is
+   *   evaluated in the context of the newly attached frame.
+   *
+   * The script is evaluated after the document was created but before any of its scripts were run. This is useful to amend
+   * the JavaScript environment, e.g. to seed `Math.random`.
+   *
+   * An example of overriding `Math.random` before the page loads:
+   *
+   * ```js
+   * // preload.js
+   * Math.random = () => 42;
+   * ```
+   *
+   * ```js
+   * // In your playwright script, assuming the preload.js file is in same directory.
+   * await browserContext.addInitScript({
+   *   path: 'preload.js'
+   * });
+   * ```
+   *
+   * > NOTE: The order of evaluation of multiple scripts installed via
+   * [browserContext.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-browsercontext#browser-context-add-init-script)
+   * and [page.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-page#page-add-init-script) is not defined.
+   * @param script Script to be evaluated in all pages in the browser context.
+   * @param arg Optional argument to pass to `script` (only supported when passing a function).
+   */
+  addInitScript<Arg>(script: PageFunction<Arg, any> | { path?: string, content?: string }, arg?: Arg): Promise<void>;
   /**
    * > NOTE: Only works with Chromium browser's persistent context.
    *
@@ -7236,48 +7298,6 @@ export interface BrowserContext {
   }>): Promise<void>;
 
   /**
-   * Adds a script which would be evaluated in one of the following scenarios:
-   * - Whenever a page is created in the browser context or is navigated.
-   * - Whenever a child frame is attached or navigated in any page in the browser context. In this case, the script is
-   *   evaluated in the context of the newly attached frame.
-   *
-   * The script is evaluated after the document was created but before any of its scripts were run. This is useful to amend
-   * the JavaScript environment, e.g. to seed `Math.random`.
-   *
-   * An example of overriding `Math.random` before the page loads:
-   *
-   * ```js
-   * // preload.js
-   * Math.random = () => 42;
-   * ```
-   *
-   * ```js
-   * // In your playwright script, assuming the preload.js file is in same directory.
-   * await browserContext.addInitScript({
-   *   path: 'preload.js'
-   * });
-   * ```
-   *
-   * > NOTE: The order of evaluation of multiple scripts installed via
-   * [browserContext.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-browsercontext#browser-context-add-init-script)
-   * and [page.addInitScript(script[, arg])](https://playwright.dev/docs/api/class-page#page-add-init-script) is not defined.
-   * @param script Script to be evaluated in all pages in the browser context.
-   * @param arg Optional argument to pass to `script` (only supported when passing a function).
-   */
-  addInitScript(script: Function|string|{
-    /**
-     * Path to the JavaScript file. If `path` is a relative path, then it is resolved relative to the current working
-     * directory. Optional.
-     */
-    path?: string;
-
-    /**
-     * Raw script content. Optional.
-     */
-    content?: string;
-  }, arg?: Serializable): Promise<void>;
-
-  /**
    * > NOTE: Background pages are only supported on Chromium-based browsers.
    *
    * All existing background pages in the context.
@@ -7350,7 +7370,7 @@ export interface BrowserContext {
    *     <button onclick="onClick()">Click me</button>
    *     <div></div>
    *   `);
-   *   await page.locator('button').click();
+   *   await page.getByRole('button').click();
    * })();
    * ```
    *
@@ -7490,7 +7510,9 @@ export interface BrowserContext {
     notFound?: "abort"|"fallback";
 
     /**
-     * If specified, updates the given HAR with the actual network information instead of serving from file.
+     * If specified, updates the given HAR with the actual network information instead of serving from file. The file is
+     * written to disk when
+     * [browserContext.close()](https://playwright.dev/docs/api/class-browsercontext#browser-context-close) is called.
      */
     update?: boolean;
 
@@ -8030,7 +8052,7 @@ export interface JSHandle<T = any> {
  * in the snippet below, underlying DOM element is going to be located twice.
  *
  * ```js
- * const locator = page.locator('text=Submit');
+ * const locator = page.getByText('Submit');
  * // ...
  * await locator.hover();
  * await locator.click();
@@ -8719,6 +8741,13 @@ export interface ElementHandle<T=Node> extends JSHandle<T> {
     modifiers?: Array<"Alt"|"Control"|"Meta"|"Shift">;
 
     /**
+     * Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can
+     * opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to
+     * inaccessible pages. Defaults to `false`.
+     */
+    noWaitAfter?: boolean;
+
+    /**
      * A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the
      * element.
      */
@@ -8904,7 +8933,7 @@ export interface ElementHandle<T=Node> extends JSHandle<T> {
 
     /**
      * When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will
-     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of
+     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of
      * high-dpi devices will be twice as large or even larger.
      *
      * Defaults to `"device"`.
@@ -9906,7 +9935,7 @@ export interface Locator {
    * // ...
    * await rowLocator
    *     .filter({ hasText: 'text in column 1' })
-   *     .filter({ has: page.locator('button', { hasText: 'column 2 button' }) })
+   *     .filter({ has: page.getByRole('button', { name: 'column 2 button' }) })
    *     .screenshot();
    * ```
    *
@@ -9953,7 +9982,7 @@ export interface Locator {
    * that iframe:
    *
    * ```js
-   * const locator = page.frameLocator('iframe').locator('text=Submit');
+   * const locator = page.frameLocator('iframe').getByText('Submit');
    * await locator.click();
    * ```
    *
@@ -9988,14 +10017,15 @@ export interface Locator {
    */
   getByAltText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
    * Allows locating input elements by the text of the associated label. For example, this method will find the input by
-   * label text Password in the following DOM:
+   * label text "Password" in the following DOM:
    *
    * ```html
    * <label for="password-input">Password:</label>
@@ -10005,9 +10035,10 @@ export interface Locator {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByLabelText(text: string|RegExp, options?: {
+  getByLabel(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -10023,9 +10054,10 @@ export interface Locator {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByPlaceholderText(text: string|RegExp, options?: {
+  getByPlaceholder(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -10043,7 +10075,7 @@ export interface Locator {
    * @param role Required aria role.
    * @param options
    */
-  getByRole(role: string, options?: {
+  getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
     /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls. Available values for
      * checked are `true`, `false` and `"mixed"`.
@@ -10109,6 +10141,14 @@ export interface Locator {
    * Locate element by the test id. By default, the `data-testid` attribute is used as a test id. Use
    * [selectors.setTestIdAttribute(attributeName)](https://playwright.dev/docs/api/class-selectors#selectors-set-test-id-attribute)
    * to configure a different test id attribute if necessary.
+   *
+   * ```js
+   * // Set custom test id attribute from @playwright/test config:
+   * use: {
+   *   testIdAttribute: 'data-pw'
+   * }
+   * ```
+   *
    * @param testId Id to locate the element by.
    */
   getByTestId(testId: string): Locator;
@@ -10120,13 +10160,14 @@ export interface Locator {
    */
   getByText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
-   * Allows locating elements by their title. For example, this method will find the button by its title "Submit":
+   * Allows locating elements by their title. For example, this method will find the button by its title "Place the order":
    *
    * ```html
    * <button title='Place the order'>Order Now</button>
@@ -10137,7 +10178,8 @@ export interface Locator {
    */
   getByTitle(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -10173,6 +10215,13 @@ export interface Locator {
      * modifiers back. If not specified, currently pressed modifiers are used.
      */
     modifiers?: Array<"Alt"|"Control"|"Meta"|"Shift">;
+
+    /**
+     * Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can
+     * opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to
+     * inaccessible pages. Defaults to `false`.
+     */
+    noWaitAfter?: boolean;
 
     /**
      * A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the
@@ -10746,8 +10795,8 @@ export interface Locator {
    * An example of typing into a text field and then submitting the form:
    *
    * ```js
-   * const element = page.locator('input');
-   * await element.type('some text');
+   * const element = page.getByLabel('Password');
+   * await element.type('my password');
    * await element.press('Enter');
    * ```
    *
@@ -14805,7 +14854,7 @@ export interface Dialog {
  *   // It is important to call waitForEvent before click to set up waiting.
  *   page.waitForEvent('download'),
  *   // Triggers the download.
- *   page.locator('text=Download file').click(),
+ *   page.getByText('Download file').click(),
  * ]);
  * // wait for download to complete
  * const path = await download.path();
@@ -15108,7 +15157,7 @@ export interface Electron {
  *   // It is important to call waitForEvent before click to set up waiting.
  *   page.waitForEvent('filechooser'),
  *   // Opens the file chooser.
- *   page.locator('text=Upload').click(),
+ *   page.getByText('Upload').click(),
  * ]);
  * await fileChooser.setFiles('myfile.pdf');
  * ```
@@ -15191,7 +15240,7 @@ export interface FileChooser {
  * [locator.frameLocator(selector)](https://playwright.dev/docs/api/class-locator#locator-frame-locator) method.
  *
  * ```js
- * const locator = page.frameLocator('#my-frame').locator('text=Submit');
+ * const locator = page.frameLocator('#my-frame').getByText('Submit');
  * await locator.click();
  * ```
  *
@@ -15202,10 +15251,10 @@ export interface FileChooser {
  *
  * ```js
  * // Throws if there are several frames in DOM:
- * await page.frameLocator('.result-frame').locator('button').click();
+ * await page.frameLocator('.result-frame').getByRole('button').click();
  *
  * // Works because we explicitly tell locator to pick the first frame:
- * await page.frameLocator('.result-frame').first().locator('button').click();
+ * await page.frameLocator('.result-frame').first().getByRole('button').click();
  * ```
  *
  * **Converting Locator to FrameLocator**
@@ -15243,14 +15292,15 @@ export interface FrameLocator {
    */
   getByAltText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
    * Allows locating input elements by the text of the associated label. For example, this method will find the input by
-   * label text Password in the following DOM:
+   * label text "Password" in the following DOM:
    *
    * ```html
    * <label for="password-input">Password:</label>
@@ -15260,9 +15310,10 @@ export interface FrameLocator {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByLabelText(text: string|RegExp, options?: {
+  getByLabel(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -15278,9 +15329,10 @@ export interface FrameLocator {
    * @param text Text to locate the element for.
    * @param options
    */
-  getByPlaceholderText(text: string|RegExp, options?: {
+  getByPlaceholder(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -15298,7 +15350,7 @@ export interface FrameLocator {
    * @param role Required aria role.
    * @param options
    */
-  getByRole(role: string, options?: {
+  getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
     /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls. Available values for
      * checked are `true`, `false` and `"mixed"`.
@@ -15364,6 +15416,14 @@ export interface FrameLocator {
    * Locate element by the test id. By default, the `data-testid` attribute is used as a test id. Use
    * [selectors.setTestIdAttribute(attributeName)](https://playwright.dev/docs/api/class-selectors#selectors-set-test-id-attribute)
    * to configure a different test id attribute if necessary.
+   *
+   * ```js
+   * // Set custom test id attribute from @playwright/test config:
+   * use: {
+   *   testIdAttribute: 'data-pw'
+   * }
+   * ```
+   *
    * @param testId Id to locate the element by.
    */
   getByTestId(testId: string): Locator;
@@ -15375,13 +15435,14 @@ export interface FrameLocator {
    */
   getByText(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
 
   /**
-   * Allows locating elements by their title. For example, this method will find the button by its title "Submit":
+   * Allows locating elements by their title. For example, this method will find the button by its title "Place the order":
    *
    * ```html
    * <button title='Place the order'>Order Now</button>
@@ -15392,7 +15453,8 @@ export interface FrameLocator {
    */
   getByTitle(text: string|RegExp, options?: {
     /**
-     * Whether to find an exact match: case-sensitive and whole-string. Default to false.
+     * Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular
+     * expression.
      */
     exact?: boolean;
   }): Locator;
@@ -15437,7 +15499,7 @@ export interface FrameLocator {
 /**
  * Keyboard provides an api for managing a virtual keyboard. The high level api is
  * [keyboard.type(text[, options])](https://playwright.dev/docs/api/class-keyboard#keyboard-type), which takes raw
- * characters and generates proper keydown, keypress/input, and keyup events on your page.
+ * characters and generates proper `keydown`, `keypress`/`input`, and `keyup` events on your page.
  *
  * For finer control, you can use [keyboard.down(key)](https://playwright.dev/docs/api/class-keyboard#keyboard-down),
  * [keyboard.up(key)](https://playwright.dev/docs/api/class-keyboard#keyboard-up), and
@@ -15795,7 +15857,7 @@ export const webkit: BrowserType;
  * > NOTE: HTTP Error responses, such as 404 or 503, are still successful responses from HTTP standpoint, so request will
  * complete with `'requestfinished'` event.
  *
- * If request gets a 'redirect' response, the request is successfully finished with the 'requestfinished' event, and a new
+ * If request gets a 'redirect' response, the request is successfully finished with the `requestfinished` event, and a new
  * request is  issued to a redirected url.
  */
 export interface Request {
@@ -16572,7 +16634,7 @@ export interface Tracing {
    * await page.goto('https://playwright.dev');
    *
    * await context.tracing.startChunk();
-   * await page.locator('text=Get Started').click();
+   * await page.getByText('Get Started').click();
    * // Everything between startChunk and stopChunk will be recorded in the trace.
    * await context.tracing.stopChunk({ path: 'trace1.zip' });
    *
@@ -17493,7 +17555,7 @@ export interface LocatorScreenshotOptions {
 
   /**
    * When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will
-   * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of
+   * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of
    * high-dpi devices will be twice as large or even larger.
    *
    * Defaults to `"device"`.
@@ -17678,7 +17740,7 @@ export interface PageScreenshotOptions {
 
   /**
    * When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will
-   * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of
+   * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of
    * high-dpi devices will be twice as large or even larger.
    *
    * Defaults to `"device"`.

@@ -545,7 +545,13 @@ Root:
 
     initialize:
       parameters:
-        sdkLanguage: string
+        sdkLanguage:
+          type: enum
+          literals:
+          - javascript
+          - python
+          - java
+          - csharp
       returns:
         playwright: Playwright
 
@@ -654,11 +660,7 @@ DebugController:
   type: interface
 
   commands:
-    setTrackHierarchy:
-      parameters:
-        enabled: boolean
-
-    setReuseBrowser:
+    setReportStateChanged:
       parameters:
         enabled: boolean
 
@@ -693,7 +695,15 @@ DebugController:
     inspectRequested:
       parameters:
         selector: string
+        locators:
+          type: array
+          items: NameValue
 
+    stateChanged:
+      parameters:
+        pageCount: number
+
+    # Deprecated
     browsersChanged:
       parameters:
         browsers:
@@ -1764,6 +1774,7 @@ Frame:
         position: Point?
         timeout: number?
         trial: boolean?
+        noWaitAfter: boolean?
       tracing:
         snapshot: true
         pausesBeforeInput: true
@@ -2329,6 +2340,7 @@ ElementHandle:
         position: Point?
         timeout: number?
         trial: boolean?
+        noWaitAfter: boolean?
       tracing:
         snapshot: true
         pausesBeforeInput: true

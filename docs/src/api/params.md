@@ -408,7 +408,7 @@ Defaults to `20`. Pass `0` to not follow redirects.
 ## evaluate-expression
 - `expression` <[string]>
 
-JavaScript expression to be evaluated in the browser context. If the expresion evaluates
+JavaScript expression to be evaluated in the browser context. If the expression evaluates
 to a function, the function is automatically invoked.
 
 ## js-evaluate-pagefunction
@@ -1031,14 +1031,14 @@ An object which specifies clipping of the resulting image. Should have the follo
 ## screenshot-option-scale
 - `scale` <[ScreenshotScale]<"css"|"device">>
 
-When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of high-dpi devices will be twice as large or even larger.
+When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of high-dpi devices will be twice as large or even larger.
 
 Defaults to `"device"`.
 
 ## screenshot-option-scale-default-css
 - `scale` <[ScreenshotScale]<"css"|"device">>
 
-When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of high-dpi devices will be twice as large or even larger.
+When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of high-dpi devices will be twice as large or even larger.
 
 Defaults to `"css"`.
 
@@ -1074,11 +1074,11 @@ Text to locate the element for.
 * since: v1.27
 - `exact` <[boolean]>
 
-Whether to find an exact match: case-sensitive and whole-string. Default to false.
+Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression.
 
 ## locator-get-by-role-role
 * since: v1.27
-- `role` <[string]>
+- `role` <[AriaRole]<"alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem">>
 
 Required aria role.
 
@@ -1176,6 +1176,13 @@ Locator is resolved to the element immediately before performing an action, so a
 
 Locate element by the test id. By default, the `data-testid` attribute is used as a test id. Use [`method: Selectors.setTestIdAttribute`] to configure a different test id attribute if necessary.
 
+```js
+// Set custom test id attribute from @playwright/test config:
+use: {
+  testIdAttribute: 'data-pw'
+}
+```
+
 ## template-locator-get-by-text
 
 Allows locating elements that contain given text.
@@ -1190,7 +1197,7 @@ Allows locating elements by their alt text. For example, this method will find t
 
 ## template-locator-get-by-label-text
 
-Allows locating input elements by the text of the associated label. For example, this method will find the input by label text Password in the following DOM:
+Allows locating input elements by the text of the associated label. For example, this method will find the input by label text "Password" in the following DOM:
 
 ```html
 <label for="password-input">Password:</label>
@@ -1213,7 +1220,7 @@ Note that many html elements have an implicitly [defined role](https://w3c.githu
 
 ## template-locator-get-by-title
 
-Allows locating elements by their title. For example, this method will find the button by its title "Submit":
+Allows locating elements by their title. For example, this method will find the button by its title "Place the order":
 
 ```html
 <button title='Place the order'>Order Now</button>

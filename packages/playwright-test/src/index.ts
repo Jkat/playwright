@@ -72,10 +72,22 @@ export const test = _baseTest.extend<TestFixtures, WorkerFixtures>({
   headless: [({ launchOptions }, use) => use(launchOptions.headless ?? true), { scope: 'worker', option: true }],
   channel: [({ launchOptions }, use) => use(launchOptions.channel), { scope: 'worker', option: true }],
   launchOptions: [{}, { scope: 'worker', option: true }],
-  connectOptions: [process.env.PW_TEST_CONNECT_WS_ENDPOINT ? {
-    wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
-    headers: process.env.PW_TEST_CONNECT_HEADERS ? JSON.parse(process.env.PW_TEST_CONNECT_HEADERS) : undefined,
-  } : undefined, { scope: 'worker', option: true }],
+  connectOptions: [({}, use) => {
+    const wsEndpoint = process.env.PW_TEST_CONNECT_WS_ENDPOINT;
+    if (!wsEndpoint)
+      return use(undefined);
+    let headers = process.env.PW_TEST_CONNECT_HEADERS ? JSON.parse(process.env.PW_TEST_CONNECT_HEADERS) : undefined;
+    if (process.env.PW_TEST_REUSE_CONTEXT) {
+      headers = {
+        ...headers,
+        'x-playwright-reuse-context': '1',
+      };
+    }
+    return use({
+      wsEndpoint,
+      headers
+    });
+  }, { scope: 'worker', option: true }],
   screenshot: ['off', { scope: 'worker', option: true }],
   video: ['off', { scope: 'worker', option: true }],
   trace: ['off', { scope: 'worker', option: true }],
@@ -579,7 +591,9 @@ type ParsedStackTrace = {
   apiName: string;
 };
 
-export function normalizeVideoMode(video: VideoMode | 'retry-with-video' | { mode: VideoMode }) {
+export function normalizeVideoMode(video: VideoMode | 'retry-with-video' | { mode: VideoMode } | undefined): VideoMode {
+  if (!video)
+    return 'off';
   let videoMode = typeof video === 'string' ? video : video.mode;
   if (videoMode === 'retry-with-video')
     videoMode = 'on-first-retry';
@@ -590,7 +604,9 @@ export function shouldCaptureVideo(videoMode: VideoMode, testInfo: TestInfo) {
   return (videoMode === 'on' || videoMode === 'retain-on-failure' || (videoMode === 'on-first-retry' && testInfo.retry === 1));
 }
 
-export function normalizeTraceMode(trace: TraceMode | 'retry-with-trace' | { mode: TraceMode }) {
+export function normalizeTraceMode(trace: TraceMode | 'retry-with-trace' | { mode: TraceMode } | undefined): TraceMode {
+  if (!trace)
+    return 'off';
   let traceMode = typeof trace === 'string' ? trace : trace.mode;
   if (traceMode === 'retry-with-trace')
     traceMode = 'on-first-retry';

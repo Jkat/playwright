@@ -257,6 +257,21 @@ export interface FullProject<TestArgs = {}, WorkerArgs = {}> {
    */
   retries: number;
   /**
+   * An integer number that defines when the project should run relative to other projects. Each project runs in exactly one
+   * stage. By default all projects run in stage 0. Stages with lower number run first. Several projects can run in each
+   * stage. Execution order between projecs in the same stage is undefined. If any test from a stage fails all tests from
+   * susequent stages are skipped, use [testProject.run](https://playwright.dev/docs/api/class-testproject#test-project-run)
+   * to change this behavior.
+   */
+  stage: number;
+  /**
+   * If set to 'always' the project will always be executed regardless of previous failures in the same test run. If set to
+   * 'always' all tests from the project will run in each shard and won't be split.  If omitted or set to 'default' the
+   * project will be skipped if there are test failures in the projects from the prior
+   * [testProject.stage](https://playwright.dev/docs/api/class-testproject#test-project-stage)'s.
+   */
+  run: 'default'|'always';
+  /**
    * Directory that will be recursively scanned for test files. Defaults to the directory of the configuration file.
    *
    * Each project can use a different directory. Here is an example that runs smoke tests in three browsers and all other
@@ -579,11 +594,6 @@ interface TestConfig {
   };
 
   /**
-   * Path to config file, if any.
-   */
-  configFile?: string;
-
-  /**
    * Whether to exit with an error if any tests or groups are marked as
    * [test.only(title, testFunction)](https://playwright.dev/docs/api/class-test#test-only) or
    * [test.describe.only(title, callback)](https://playwright.dev/docs/api/class-test#test-describe-only). Useful on CI.
@@ -682,38 +692,6 @@ interface TestConfig {
    * `grepInvert` option is also useful for [tagging tests](https://playwright.dev/docs/test-annotations#tag-tests).
    */
   grepInvert?: RegExp|Array<RegExp>;
-
-  /**
-   * Project groups that control project execution order.
-   */
-  groups?: { [key: string]: Array<string|Array<string|{
-    /**
-     * Project name(s).
-     */
-    project: string|Array<string>;
-
-    /**
-     * Filter to only run tests with a title matching one of the patterns.
-     */
-    grep?: RegExp|Array<RegExp>;
-
-    /**
-     * Filter to only run tests with a title **not** matching one of the patterns.
-     */
-    grepInvert?: RegExp|Array<RegExp>;
-
-    /**
-     * Only the files matching one of these patterns are executed as test files. Matching is performed against the absolute
-     * file path. Strings are treated as glob patterns.
-     */
-    testMatch?: string|RegExp|Array<string|RegExp>;
-
-    /**
-     * Files matching one of these patterns are not executed as test files. Matching is performed against the absolute file
-     * path. Strings are treated as glob patterns.
-     */
-    testIgnore?: string|RegExp|Array<string|RegExp>;
-  }>>; };
 
   /**
    * Whether to skip snapshot expectations, such as `expect(value).toMatchSnapshot()` and `await
@@ -1337,9 +1315,6 @@ export interface FullConfig<TestArgs = {}, WorkerArgs = {}> {
    *
    */
   webServer: TestConfigWebServer | null;
-  /**
-   * Path to config file, if any.
-   */
   configFile?: string;
 }
 
@@ -3078,9 +3053,9 @@ export interface PlaywrightTestArgs {
    *
    * test('basic test', async ({ page }) => {
    *   await page.goto('/signin');
-   *   await page.locator('#username').fill('User');
-   *   await page.locator('#password').fill('pwd');
-   *   await page.locator('text=Sign in').click();
+   *   await page.getByLabel('User Name').fill('user');
+   *   await page.getByLabel('Password').fill('password');
+   *   await page.getByText('Sign in').click();
    *   // ...
    * });
    * ```
@@ -3255,7 +3230,7 @@ interface APIResponseAssertions {
  *
  * test('status becomes submitted', async ({ page }) => {
  *   // ...
- *   await page.locator('#submit-button').click();
+ *   await page.getByRole('button').click();
  *   await expect(page.locator('.status')).toHaveText('Submitted');
  * });
  * ```
@@ -3277,7 +3252,7 @@ interface LocatorAssertions {
    * Ensures the [Locator] points to a checked input.
    *
    * ```js
-   * const locator = page.locator('.subscribe');
+   * const locator = page.getByLabel('Subscribe to newsletter');
    * await expect(locator).toBeChecked();
    * ```
    *
@@ -3316,7 +3291,7 @@ interface LocatorAssertions {
    * Ensures the [Locator] points to an editable element.
    *
    * ```js
-   * const locator = page.locator('input');
+   * const locator = page.getByRole('textbox');
    * await expect(locator).toBeEditable();
    * ```
    *
@@ -3371,7 +3346,7 @@ interface LocatorAssertions {
    * Ensures the [Locator] points to a focused DOM node.
    *
    * ```js
-   * const locator = page.locator('input');
+   * const locator = page.getByRole('textbox');
    * await expect(locator).toBeFocused();
    * ```
    *
@@ -3557,7 +3532,7 @@ interface LocatorAssertions {
    * Ensures the [Locator] resolves to an element with the given computed CSS style.
    *
    * ```js
-   * const locator = page.locator('button');
+   * const locator = page.getByRole('button');
    * await expect(locator).toHaveCSS('display', 'flex');
    * ```
    *
@@ -3576,7 +3551,7 @@ interface LocatorAssertions {
    * Ensures the [Locator] points to an element with the given DOM Node ID.
    *
    * ```js
-   * const locator = page.locator('input');
+   * const locator = page.getByRole('textbox');
    * await expect(locator).toHaveId('lastname');
    * ```
    *
@@ -3615,7 +3590,7 @@ interface LocatorAssertions {
    * screenshot with the expectation.
    *
    * ```js
-   * const locator = page.locator('button');
+   * const locator = page.getByRole('button');
    * await expect(locator).toHaveScreenshot('image.png');
    * ```
    *
@@ -3665,7 +3640,7 @@ interface LocatorAssertions {
 
     /**
      * When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will
-     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of
+     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of
      * high-dpi devices will be twice as large or even larger.
      *
      * Defaults to `"css"`.
@@ -3690,7 +3665,7 @@ interface LocatorAssertions {
    * screenshot with the expectation.
    *
    * ```js
-   * const locator = page.locator('button');
+   * const locator = page.getByRole('button');
    * await expect(locator).toHaveScreenshot();
    * ```
    *
@@ -3739,7 +3714,7 @@ interface LocatorAssertions {
 
     /**
      * When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will
-     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of
+     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of
      * high-dpi devices will be twice as large or even larger.
      *
      * Defaults to `"css"`.
@@ -3880,7 +3855,7 @@ interface LocatorAssertions {
  *
  * test('navigates to login', async ({ page }) => {
  *   // ...
- *   await page.locator('#login').click();
+ *   await page.getByText('Sign in').click();
  *   await expect(page).toHaveURL(/.*\/login/);
  * });
  * ```
@@ -3983,7 +3958,7 @@ interface PageAssertions {
 
     /**
      * When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will
-     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of
+     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of
      * high-dpi devices will be twice as large or even larger.
      *
      * Defaults to `"css"`.
@@ -4087,7 +4062,7 @@ interface PageAssertions {
 
     /**
      * When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will
-     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenhots of
+     * keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of
      * high-dpi devices will be twice as large or even larger.
      *
      * Defaults to `"css"`.
@@ -4499,6 +4474,23 @@ interface TestProject {
   retries?: number;
 
   /**
+   * If set to 'always' the project will always be executed regardless of previous failures in the same test run. If set to
+   * 'always' all tests from the project will run in each shard and won't be split.  If omitted or set to 'default' the
+   * project will be skipped if there are test failures in the projects from the prior
+   * [testProject.stage](https://playwright.dev/docs/api/class-testproject#test-project-stage)'s.
+   */
+  run?: "default"|"always";
+
+  /**
+   * An integer number that defines when the project should run relative to other projects. Each project runs in exactly one
+   * stage. By default all projects run in stage 0. Stages with lower number run first. Several projects can run in each
+   * stage. Execution order between projecs in the same stage is undefined. If any test from a stage fails all tests from
+   * susequent stages are skipped, use [testProject.run](https://playwright.dev/docs/api/class-testproject#test-project-run)
+   * to change this behavior.
+   */
+  stage?: number;
+
+  /**
    * Directory that will be recursively scanned for test files. Defaults to the directory of the configuration file.
    *
    * Each project can use a different directory. Here is an example that runs smoke tests in three browsers and all other
@@ -4607,7 +4599,8 @@ interface TestConfigWebServer {
   ignoreHTTPSErrors?: boolean;
 
   /**
-   * How long to wait for the process to start up and be available in milliseconds. Defaults to 60000.
+   * How long to wait for the process to start up and be available in milliseconds. The same timeout is also used to
+   * terminate the process. Defaults to 60000.
    */
   timeout?: number;
 

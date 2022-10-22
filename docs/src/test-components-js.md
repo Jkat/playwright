@@ -18,7 +18,7 @@ test('event should work', async ({ mount }) => {
   let clicked = false;
 
   // Mount a component. Returns locator pointing to the component.
-  const component = await mount(<Button title='Submit'
+  const component = await mount(<Button title="Submit"
     onClick={() => clicked = true}>
   </Button>);
 
@@ -76,7 +76,7 @@ also link the script called `playwright/index.[tj]s`.
 <html lang="en">
   <body>
     <div id="root"></div>
-    <script type="module" src="/playwright/index.ts"></script>
+    <script type="module" src="./index.ts"></script>
   </body>
 </html>
 ```
@@ -98,6 +98,7 @@ component is mounted using this script. It can be either a `.js` or `.ts` file.
     {label: 'React', value: 'react'},
     {label: 'Vue', value: 'vue'},
     {label: 'Svelte', value: 'svelte'},
+    {label: 'Solid', value: 'solid'},
   ]
 }>
 <TabItem value="react">
@@ -109,7 +110,7 @@ import App from './App';
 test.use({ viewport: { width: 500, height: 500 } });
 
 test('should work', async ({ mount }) => {
-  const component = await mount(<App></App>);
+  const component = await mount(<App />);
   await expect(component).toContainText('Learn React');
 });
 ```
@@ -125,7 +126,7 @@ import App from './App.vue';
 test.use({ viewport: { width: 500, height: 500 } });
 
 test('should work', async ({ mount }) => {
-  const component = await mount(<App></App>);
+  const component = await mount(<App />);
   await expect(component).toContainText('Vite + Vue');
 });
 ```
@@ -149,6 +150,22 @@ test.use({ viewport: { width: 500, height: 500 } });
 test('should work', async ({ mount }) => {
   const component = await mount(App);
   await expect(component).toContainText('Vite + Svelte');
+});
+```
+
+</TabItem>
+
+<TabItem value="solid">
+
+```js
+import { test, expect } from '@playwright/experimental-ct-solid';
+import App from './App';
+
+test.use({ viewport: { width: 500, height: 500 } });
+
+test('should work', async ({ mount }) => {
+  const component = await mount(<App />);
+  await expect(component).toContainText('Learn Solid');
 });
 ```
 
@@ -254,7 +271,7 @@ const config: PlaywrightTestConfig = {
 export default config
 ```
 
-### Q) What's the difference between `@playwright/test` and `@playwright/experimental-ct-{react,svelte,vue}`?
+### Q) What's the difference between `@playwright/test` and `@playwright/experimental-ct-{react,svelte,vue,solid}`?
 
 ```ts
 test('…', async { mount, page, context } => {
@@ -262,7 +279,7 @@ test('…', async { mount, page, context } => {
 });
 ```
 
-`@playwright/experimental-ct-{react,svelte,vue}` wrap `@playwright/test` to provide an additional built-in component-testing specific fixture called `mount`:
+`@playwright/experimental-ct-{react,svelte,vue,solid}` wrap `@playwright/test` to provide an additional built-in component-testing specific fixture called `mount`:
 
 <Tabs
   defaultValue="react"
@@ -270,19 +287,19 @@ test('…', async { mount, page, context } => {
     {label: 'React', value: 'react'},
     {label: 'Vue', value: 'vue'},
     {label: 'Svelte', value: 'svelte'},
+    {label: 'Solid', value: 'solid'},
   ]
 }>
 <TabItem value="react">
 
 ```js
 import { test, expect } from '@playwright/experimental-ct-react'
-
-import HelloWorld from './HelloWorld.tsx'
+import HelloWorld from './HelloWorld'
 
 test.use({ viewport: { width: 500, height: 500 } })
 
 test('should work', async ({ mount }) => {
-  const component = await mount(<HelloWorld msg='greetings' />);
+  const component = await mount(<HelloWorld msg="greetings" />);
   await expect(component).toContainText('Greetings')
 })
 ```
@@ -293,7 +310,6 @@ test('should work', async ({ mount }) => {
 
 ```js
 import { test, expect } from '@playwright/experimental-ct-vue'
-
 import HelloWorld from './HelloWorld.vue'
 
 test.use({ viewport: { width: 500, height: 500 } })
@@ -313,23 +329,34 @@ test('should work', async ({ mount }) => {
 <TabItem value="svelte">
 
 ```js
-import { test, expect } from '@playwright/experimental-ct-vue'
-
-import NamedSlots from './NamedSlots.vue'
+import { test, expect } from '@playwright/experimental-ct-svelte'
+import HelloWorld from './HelloWorld.svelte'
 
 test.use({ viewport: { width: 500, height: 500 } })
 
-test('named slots should work', async ({ mount }) => {
-  const component = await mount(NamedSlots, {
-    slots: {
-      header: 'Header',
-      main: 'Main Content',
-      footer: 'Footer'
+test('should work', async ({ mount }) => {
+  const component = await mount(HelloWorld, {
+    props: {
+      msg: 'Greetings'
     }
-  })
-  await expect(component).toContainText('Header')
-  await expect(component).toContainText('Main Content')
-  await expect(component).toContainText('Footer')
+  });
+  await expect(component).toContainText('Greetings')
+})
+```
+
+</TabItem>
+
+<TabItem value="solid">
+
+```js
+import { test, expect } from '@playwright/experimental-ct-solid'
+import HelloWorld from './HelloWorld'
+
+test.use({ viewport: { width: 500, height: 500 } })
+
+test('should work', async ({ mount }) => {
+  const component = await mount(<HelloWorld msg="greetings" />);
+  await expect(component).toContainText('Greetings')
 })
 ```
 
@@ -342,7 +369,7 @@ Additionally, it adds some config options you can use in your `playwright-ct.con
 Finally, under the hood, each test re-uses the `context` and `page` fixture as a speed optimization for Component Testing. 
 It resets them in between each test so it should be functionally equivalent to `@playwright/test`'s guarantee that you get a new, isolated `context` and `page` fixture per-test.
 
-### Q) Can I use `@playwright/test` and `@playwright/experimental-ct-{react,svelte,vue}`?
+### Q) Can I use `@playwright/test` and `@playwright/experimental-ct-{react,svelte,vue,solid}`?
 
 Yes. Use a Playwright Config for each and follow their respective guides ([E2E Playwright Test](https://playwright.dev/docs/intro), [Component Tests](https://playwright.dev/docs/test-components))
 
@@ -351,7 +378,7 @@ Yes. Use a Playwright Config for each and follow their respective guides ([E2E P
 This is a [known issue](https://github.com/microsoft/playwright/issues/14401). The following pattern does not work:
 
 ```js
-const app = <App></App>;
+const app = <App />;
 await mount(app);
 ```
 
@@ -364,7 +391,7 @@ undefined: TypeError: Cannot read properties of undefined (reading 'map')
 while this works:
 
 ```js
-await mount(<App></App>);
+await mount(<App />);
 ```
 
 ### Q) How can I use Vite plugins?

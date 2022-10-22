@@ -23,12 +23,16 @@ import type { InstrumentationListener } from './instrumentation';
 import type { Playwright } from './playwright';
 import { Recorder } from './recorder';
 import { EmptyRecorderApp } from './recorder/recorderApp';
+import { asLocator } from './isomorphic/locatorGenerators';
+import type { Language } from './isomorphic/locatorGenerators';
+import type { NameValue } from '../common/types';
 
 const internalMetadata = serverSideCallMetadata();
 
 export class DebugController extends SdkObject {
   static Events = {
     BrowsersChanged: 'browsersChanged',
+    StateChanged: 'stateChanged',
     InspectRequested: 'inspectRequested',
     SourcesChanged: 'sourcesChanged',
   };
@@ -50,12 +54,11 @@ export class DebugController extends SdkObject {
   }
 
   dispose() {
-    this.setTrackHierarcy(false);
+    this.setReportStateChanged(false);
     this.setAutoCloseAllowed(false);
-    this.setReuseBrowser(false);
   }
 
-  setTrackHierarcy(enabled: boolean) {
+  setReportStateChanged(enabled: boolean) {
     if (enabled && !this._trackHierarchyListener) {
       this._trackHierarchyListener = {
         onPageOpen: () => this._emitSnapshot(),
@@ -67,14 +70,6 @@ export class DebugController extends SdkObject {
       this._playwright.instrumentation.removeListener(this._trackHierarchyListener);
       this._trackHierarchyListener = undefined;
     }
-  }
-
-  reuseBrowser(): boolean {
-    return this._reuseBrowser;
-  }
-
-  setReuseBrowser(enabled: boolean) {
-    this._reuseBrowser = enabled;
   }
 
   async resetForReuse() {
@@ -160,6 +155,7 @@ export class DebugController extends SdkObject {
 
   private _emitSnapshot() {
     const browsers = [];
+    let pageCount = 0;
     for (const browser of this._playwright.allBrowsers()) {
       const b = {
         contexts: [] as any[]
@@ -172,9 +168,12 @@ export class DebugController extends SdkObject {
         b.contexts.push(c);
         for (const page of context.pages())
           c.pages.push(page.mainFrame().url());
+        pageCount += context.pages().length;
       }
     }
+    // TODO: browsers is deprecated, remove it.
     this.emit(DebugController.Events.BrowsersChanged, browsers);
+    this.emit(DebugController.Events.StateChanged, { pageCount });
   }
 
   private async _allRecorders(): Promise<Recorder[]> {
@@ -215,7 +214,8 @@ class InspectingRecorderApp extends EmptyRecorderApp {
   }
 
   override async setSelector(selector: string): Promise<void> {
-    this._debugController.emit(DebugController.Events.InspectRequested, selector);
+    const locators: NameValue[] = ['javascript', 'python', 'java', 'csharp'].map(l => ({ name: l, value: asLocator(l as Language, selector) }));
+    this._debugController.emit(DebugController.Events.InspectRequested, { selector, locators });
   }
 
   override async setSources(sources: Source[]): Promise<void> {

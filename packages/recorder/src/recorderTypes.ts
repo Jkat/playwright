@@ -14,12 +14,14 @@
   limitations under the License.
 */
 
+import type { Language } from '../../playwright-core/src/server/isomorphic/locatorGenerators';
+
 export type Point = { x: number, y: number };
 
 export type Mode = 'inspecting' | 'recording' | 'none';
 
 export type EventData = {
-  event: 'clear' | 'resume' | 'step' | 'pause' | 'setMode' | 'selectorUpdated';
+  event: 'clear' | 'resume' | 'step' | 'pause' | 'setMode' | 'selectorUpdated' | 'fileChanged';
   params: any;
 };
 
@@ -27,6 +29,7 @@ export type UIState = {
   mode: Mode;
   actionPoint?: Point;
   actionSelector?: string;
+  language: 'javascript' | 'python' | 'java' | 'csharp';
 };
 
 export type CallLogStatus = 'in-progress' | 'done' | 'error' | 'paused';
@@ -55,7 +58,7 @@ export type Source = {
   id: string;
   label: string;
   text: string;
-  language: string;
+  language: Language;
   highlight: SourceHighlight[];
   revealLine?: number;
   // used to group the language generators

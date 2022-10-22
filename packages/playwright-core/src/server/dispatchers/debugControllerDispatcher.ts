@@ -25,23 +25,19 @@ export class DebugControllerDispatcher extends Dispatcher<DebugController, chann
   constructor(connection: DispatcherConnection, debugController: DebugController) {
     super(connection, debugController, 'DebugController', {});
     this._type_DebugController = true;
-    this._object.on(DebugController.Events.BrowsersChanged, browsers => {
-      this._dispatchEvent('browsersChanged', { browsers });
+    this._object.on(DebugController.Events.StateChanged, params => {
+      this._dispatchEvent('stateChanged', params);
     });
-    this._object.on(DebugController.Events.InspectRequested, selector => {
-      this._dispatchEvent('inspectRequested', { selector });
+    this._object.on(DebugController.Events.InspectRequested, ({ selector, locators }) => {
+      this._dispatchEvent('inspectRequested', { selector, locators });
     });
     this._object.on(DebugController.Events.SourcesChanged, sources => {
       this._dispatchEvent('sourcesChanged', { sources });
     });
   }
 
-  async setTrackHierarchy(params: channels.DebugControllerSetTrackHierarchyParams) {
-    this._object.setTrackHierarcy(params.enabled);
-  }
-
-  async setReuseBrowser(params: channels.DebugControllerSetReuseBrowserParams) {
-    this._object.setReuseBrowser(params.enabled);
+  async setReportStateChanged(params: channels.DebugControllerSetReportStateChangedParams) {
+    this._object.setReportStateChanged(params.enabled);
   }
 
   async resetForReuse() {

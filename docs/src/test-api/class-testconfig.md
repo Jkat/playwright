@@ -84,12 +84,6 @@ const config: PlaywrightTestConfig = {
 export default config;
 ```
 
-## property: TestConfig.configFile
-* since: v1.27
-- type: ?<[string]>
-
-Path to config file, if any.
-
 ## property: TestConfig.forbidOnly
 * since: v1.10
 - type: ?<[boolean]>
@@ -119,7 +113,7 @@ export default config;
 ```
 
 ## property: TestConfig.fullyParallel
-* since: v1.10
+* since: v1.20
 - type: ?<[boolean]>
 
 Playwright Test runs tests in parallel. In order to achieve that, it runs several worker processes that run at the same time.
@@ -231,17 +225,6 @@ Filter to only run tests with a title matching one of the patterns. For example,
 Filter to only run tests with a title **not** matching one of the patterns. This is the opposite of [`property: TestConfig.grep`]. Also available in the [command line](../test-cli.md) with the `--grep-invert` option.
 
 `grepInvert` option is also useful for [tagging tests](../test-annotations.md#tag-tests).
-
-## property: TestConfig.groups
-* since: v1.27
-- type: ?<[Object]<[string],[Array]<[string]|[Array]<[string]|[Object]>>>>
-  - `project` <[string]|[Array]<[string]>> Project name(s).
-  - `grep` ?<[RegExp]|[Array]<[RegExp]>> Filter to only run tests with a title matching one of the patterns.
-  - `grepInvert` ?<[RegExp]|[Array]<[RegExp]>> Filter to only run tests with a title **not** matching one of the patterns.
-  - `testMatch` ?<[string]|[RegExp]|[Array]<[string]|[RegExp]>> Only the files matching one of these patterns are executed as test files. Matching is performed against the absolute file path. Strings are treated as glob patterns.
-  - `testIgnore` ?<[string]|[RegExp]|[Array]<[string]|[RegExp]>> Files matching one of these patterns are not executed as test files. Matching is performed against the absolute file path. Strings are treated as glob patterns.
-
-Project groups that control project execution order.
 
 ## property: TestConfig.ignoreSnapshots
 * since: v1.26
@@ -673,7 +656,7 @@ export default config;
   - `port` ?<[int]> The port that your http server is expected to appear on. It does wait until it accepts connections. Exactly one of `port` or `url` is required.
   - `url` ?<[string]> The url on your http server that is expected to return a 2xx, 3xx, 400, 401, 402, or 403 status code when the server is ready to accept connections. Exactly one of `port` or `url` is required.
   - `ignoreHTTPSErrors` ?<[boolean]> Whether to ignore HTTPS errors when fetching the `url`. Defaults to `false`.
-  - `timeout` ?<[int]> How long to wait for the process to start up and be available in milliseconds. Defaults to 60000.
+  - `timeout` ?<[int]> How long to wait for the process to start up and be available in milliseconds. The same timeout is also used to terminate the process. Defaults to 60000.
   - `reuseExistingServer` ?<[boolean]> If true, it will re-use an existing server on the `port` or `url` when available. If no server is running on that `port` or `url`, it will run the command to start a new server. If `false`, it will throw if an existing process is listening on the `port` or `url`. This should be commonly set to `!process.env.CI` to allow the local dev server when running tests locally.
   - `cwd` ?<[string]> Current working directory of the spawned process, defaults to the directory of the configuration file.
   - `env` ?<[Object]<[string], [string]>> Environment variables to set for the command, `process.env` by default.
